@@ -16,8 +16,44 @@ in_temp() {
 }
 
 extractable_extesions() {
-  grep -oP '(?<=\*\.)[\w.]+' "$0" | tr '\n' '|' | sed 's/.$//'
+  grep -oP '(?<=\*\.)[\w.]+' "$0" | sort | uniq | tr '\n' '|' | sed 's/.$//'
   [ -t 1 ] || echo
+}
+
+usage() {
+  {
+    echo "${name}: magically extract any kind of archive"
+    {
+      printf "Includes: "
+      extractable_extesions | sed 's/|/, /g'
+    } | fold --space | sed -e '1s/^/  /g' -e '1 ! s/^/    /g'
+    echo
+    echo "Usage:"
+    echo "  ${name} -h|--help"
+    echo "  ${name} [-v|-V] [-k|-K] [-d/-D] path/file_name_1.ext ..."
+    echo
+    echo "  -v/-V: Toggle verbose on (v) or off (V)"
+    echo "  -k/-K: Toggle force-keeping the archive on (k) or off (k)"
+    echo "  -d/-D: Toggle force-extract inside a directory on (k) or off (k)"
+    echo
+    echo "  You can mix those flags with normal arguments, e.g.:"
+    echo "    ${name} -v archive-1.tgz -V -k archive-2.tgz -d archive-3.tgz ..."
+    echo "  and they will apply from the next command onwards"
+    echo "  i.e. if you want to apply them for the whole session, list them first"
+    echo
+    echo "  Collated arguments (e.g. -vK) are not accepted, and this is an error."
+    echo "  If you insist that it is a filename (there is already a check), prepend it with \`./\`"
+    echo
+    echo "(Note that you may want to \`cd\` to the directory you want to extract to!)"
+    echo
+    echo "Exit Code:"
+    echo "  0     - all okay"
+    echo "  1-123 - # of input files / archives not processed"
+    echo "  124   - # of input files / archives not processed or more*"
+    echo "  125   - argument parsing error"
+    echo "  126   - show help"
+    echo "  127   - (reserved)"
+  } >&2
 }
 
 function extract {
@@ -37,28 +73,7 @@ function extract {
 
   if [ -z "$1" ] || [[ "$*" =~ (^|\s)(-h|--help)(\s|$) ]] ; then
     # display usage if no parameters given or -h/--help at arguments
-    {
-      echo "${name}: magically extract any kind of archive"
-      printf "  Includes:"
-      extractable_extesions | sed 's/|/, /g' | fold --space | sed 's/^/  /g'
-      echo
-      echo "Usage:"
-      echo "  ${name} -h|--help"
-      echo "  ${name} [-v|-V] [-k|-K] [-d/-D] path/file_name_1.ext ..."
-      echo
-      echo "Collated arguments (e.g. -vK) are not accepted, and this is an error."
-      echo "If you insist that it is a filename (there is already a check), prepend it with \`./\`"
-      echo
-      echo "Note that you may want to \`cd\` to the directory you want to extract to!"
-      echo
-      echo "Exit Code:"
-      echo "  0     - all okay"
-      echo "  1-124 - # of input files / archives not processed"
-      echo "  125   - argument parsing error"
-      echo "  126   - show help"
-      echo "  127   - (reserved)"
-    } >&2
-
+    usage
     return 126
   fi
 
@@ -178,6 +193,12 @@ function extract {
         rm "${in_dir}/${n}" || echo "^^ FAILED!" >&2
       fi
   done
+
+  # Avoid ${EXIT_CODE} going over the claimed limit
+  if [ "${EXIT_CODE}" -gt 124 ] ; then
+    >&2 echo "Error extracting ${EXIT_CODE} archives!!!"
+    EXIT_CODE=124
+  fi
 
   return "${EXIT_CODE}"
 }

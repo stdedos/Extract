@@ -46,11 +46,15 @@ function extract {
       echo "  ${name} -h|--help"
       echo "  ${name} [-v|-V] [-k|-K] [-d/-D] path/file_name_1.ext ..."
       echo
+      echo "Collated arguments (e.g. -vK) are not accepted, and this is an error."
+      echo "If you insist that it is a filename (there is already a check), prepend it with \`./\`"
+      echo
       echo "Note that you may want to \`cd\` to the directory you want to extract to!"
       echo
       echo "Exit Code:"
       echo "  0     - all okay"
-      echo "  1-125 - # of input files / archives not processed"
+      echo "  1-124 - # of input files / archives not processed"
+      echo "  125   - argument parsing error"
       echo "  126   - show help"
       echo "  127   - (reserved)"
     } >&2
@@ -70,6 +74,11 @@ function extract {
       -K) KEEP=1        ; continue ;;
       -d) FORCE_DIR=0   ; continue ;;
       -D) FORCE_DIR=1   ; continue ;;
+      -*) if [ ! -f "$n" ] ; then
+            >&2 echo "Argument '$1' not recognized, and it's not a filename!"
+            return 125
+          fi
+      ;;
       *)  ;;
     esac
 

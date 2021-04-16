@@ -44,7 +44,7 @@ function extract {
       echo
       echo "Usage:"
       echo "  ${name} -h|--help"
-      echo "  ${name} [-v|-V] [-k|-K] [-D] path/file_name_1.ext ..."
+      echo "  ${name} [-v|-V] [-k|-K] [-d/-D] path/file_name_1.ext ..."
       echo
       echo "Note that you may want to \`cd\` to the directory you want to extract to!"
       echo
@@ -68,7 +68,8 @@ function extract {
       -V) VERBOSE=1     ; continue ;;
       -k) KEEP=0        ; continue ;;
       -K) KEEP=1        ; continue ;;
-      -D) FORCE_DIR=0   ; continue ;;
+      -d) FORCE_DIR=0   ; continue ;;
+      -D) FORCE_DIR=1   ; continue ;;
       *)  ;;
     esac
 

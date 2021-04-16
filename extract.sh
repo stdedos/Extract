@@ -88,6 +88,10 @@ function extract {
       if ! (cd "${in_dir}" && extract "$n") ; then
         EXIT_CODE="$((EXIT_CODE + 1))"
       fi
+
+      echo "Removing '${in_dir}/${n}' hardlink" >&2
+      rm "${in_dir}/${n}" || echo "FAILED!" >&2
+
       continue
     fi
 
@@ -157,6 +161,11 @@ function extract {
       # shellcheck disable=SC2181
       if [ "$?" -ne 0 ] ; then
         EXIT_CODE="$((EXIT_CODE + 1))"
+      fi
+
+      if [ -n "${in_dir}" ] ; then
+        echo "Removing '${in_dir}/${n}' hardlink" >&2
+        rm "${in_dir}/${n}" || echo "FAILED!" >&2
       fi
   done
 

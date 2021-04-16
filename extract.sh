@@ -6,6 +6,8 @@
 # Author: Stdedos <133706+stdedos@users.noreply.github.com>
 
 in_temp_exp_disable=999
+status_failure=1
+status_unknown_archive=120
 
 in_temp() {
   set -Eeuo pipefail
@@ -25,6 +27,25 @@ in_temp() {
   echo "${in_dir}"
 }
 
+7z_cross_platform() {
+  # stdbuf -e0 -i0 -o0: We are piping the command;
+  #                     don't let this ruin our output
+  local STDBUF=(stdbuf -e0 -i0 -o0)
+
+  command -V "${STDBUF[0]}" &> /dev/null || STDBUF=()
+
+  if command -V 7zr &> /dev/null; then
+    "${STDBUF[@]}" 7zr x "$1"
+  elif command -V 7za &> /dev/null; then
+    "${STDBUF[@]}" 7za x "$1"
+  elif command -V 7z &> /dev/null; then
+    "${STDBUF[@]}" 7z x "$1"
+  else
+    echo "Could not find p7zip!"
+    (exit 126)
+  fi
+}
+
 extractable_extesions() {
   grep -oP '(?<=\*\.)[\w.]+' "$0" | sort | uniq | tr '\n' '|' | sed 's/.$//'
   [ -t 1 ] || echo
@@ -37,6 +58,7 @@ usage() {
       printf "Includes: "
       extractable_extesions | sed 's/|/, /g'
     } | fold --space | sed -e '1s/^/  /g' -e '1 ! s/^/    /g'
+    echo "  ... and many more, if \`p7zip\` supports them ;-)"
     echo
     echo "Usage:"
     echo "  ${name} -h|--help"
@@ -73,6 +95,8 @@ function extract {
   local FORCE_DIR="${FORCE_DIR:-1}"
   local in_dir
   local name
+  local status
+  local msg
   local -a VERBOSE_FLAG
   local -a KEEP_FLAG
 
@@ -91,6 +115,7 @@ function extract {
     VERBOSE_FLAG=()
     KEEP_FLAG=()
     in_dir=
+    status=0
 
     case $n in
       -v) VERBOSE=0     ; continue ;;
@@ -175,7 +200,7 @@ function extract {
         fi
         (cd "${in_dir}" && jar "${VERBOSE_FLAG[*]}"xf "$n")
       ;;
-      *.7z|*.arj|*.cab|*.cb7|*.chm|*.deb|*.dmg|*.iso|*.lzh|*.msi|*.pkg|*.rpm|*.udf|*.wim|*.xar|*.exe|*.apk)
+      *.7z|*.arj|*.cab|*.cb7|*.chm|*.dmg|*.iso|*.lzh|*.msi|*.pkg|*.rpm|*.udf|*.wim|*.xar|*.apk)
                               7z x "$n"        ;;
       *.xz)                   unxz "$n"        ;;
       *.exe)                  cabextract "$n"  ;;
@@ -187,15 +212,27 @@ function extract {
       *.zpaq)                 zpaq x "$n"      ;;
       *.arc)                  arc e "$n"       ;;
       *.cso)                  ciso 0 "$n" "$n.iso" && extract "$n.iso" && command rm -f "$n" ;;
-      *)
-        >&2 echo "${name}: '$n' - unknown archive method"
-        (exit 1)
-      ;;
+      *)                      (exit "${status_unknown_archive}") ;;
       esac
 
+      status="$?"
       # shellcheck disable=SC2181
-      if [ "$?" -ne 0 ] ; then
-        EXIT_CODE="$((EXIT_CODE + 1))"
+      if [ "${status}" -ne 0 ] ; then
+        case ${status} in
+          "${status_unknown_archive}")
+            msg='unknown archive method'
+          ;;
+          "${status_failure}")
+            msg='extraction failed'
+          ;;
+          *) msg='unknown error!';;
+        esac
+
+        >&2 echo "${name}: '$n' - ${msg}; trying 7z"
+
+        if ! (set -Eeuo pipefail ; 7z_cross_platform "$n" | sed 's/^/  /g') ; then
+          EXIT_CODE="$((EXIT_CODE + 1))"
+        fi
       fi
 
       if [ -n "${in_dir}" ] && [ "${in_dir}" != '.' ] ; then

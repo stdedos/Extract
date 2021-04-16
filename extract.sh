@@ -5,8 +5,18 @@
 # Author: xVoLAnD <xvoland@gmail.com>
 # Author: Stdedos <133706+stdedos@users.noreply.github.com>
 
+in_temp_exp_disable=999
+
 in_temp() {
   set -Eeuo pipefail
+
+  # If we force in-dir extraction, don't nest invocations
+  case ${2:-} in
+    '') :;;
+    *[!0-9]*) >&2 echo "${FUNCNAME[0]}: Invalid second argument, ignoring! ($2)" ;;
+    "${in_temp_exp_disable}") echo . ; return ;;
+    *) :;;
+  esac
 
   in_dir="$(mktemp -dp . "${n}-XXXXX")"
   >&2 echo "Copying (hardlink) '$n' in '${in_dir}/$n'"
@@ -60,7 +70,7 @@ function extract {
   local EXIT_CODE=0
   local VERBOSE=1
   local KEEP=0
-  local FORCE_DIR=1
+  local FORCE_DIR="${FORCE_DIR:-1}"
   local in_dir
   local name
   local -a VERBOSE_FLAG
@@ -104,10 +114,10 @@ function extract {
     fi
 
     if [ "${FORCE_DIR}" -eq 0 ] ; then
-      if ! in_dir="$(in_temp "$n")" ; then
+      if ! in_dir="$(in_temp "$n" "${FORCE_DIR}")" ; then
         echo "Failed to prepare '$n' for extraction!" >&2
       fi
-      if ! (cd "${in_dir}" && extract "$n") ; then
+      if ! (cd "${in_dir}" && FORCE_DIR="${in_temp_exp_disable}" extract "$n") ; then
         EXIT_CODE="$((EXIT_CODE + 1))"
       fi
 
@@ -131,7 +141,7 @@ function extract {
       *.gz)                   test "${KEEP}" -eq 0 && KEEP_FLAG=(-k)
                               gunzip "${KEEP_FLAG[@]}" "$n"      ;;
       *.docx|*.xlsx)
-        if ! in_dir="$(in_temp "$n")" ; then
+        if ! in_dir="$(in_temp "$n" "${FORCE_DIR}")" ; then
           echo "Failed to prepare '$n' for extraction!" >&2
         fi
       ;&
@@ -152,7 +162,7 @@ function extract {
 
         # ar extracts "here", and debfiles have
         # multiple and similarly-named files
-        if ! in_dir="$(in_temp "$n")" ; then
+        if ! in_dir="$(in_temp "$n" "${FORCE_DIR}")" ; then
           echo "Failed to prepare '$n' for extraction!" >&2
         fi
         (cd "${in_dir}" && ar "${VERBOSE_FLAG[*]}"x "$n")
@@ -160,7 +170,7 @@ function extract {
       *.jar)
         test "${VERBOSE}" -eq 0 && VERBOSE_FLAG=(v)
 
-        if ! in_dir="$(in_temp "$n")" ; then
+        if ! in_dir="$(in_temp "$n" "${FORCE_DIR}")" ; then
           echo "Failed to prepare '$n' for extraction!" >&2
         fi
         (cd "${in_dir}" && jar "${VERBOSE_FLAG[*]}"xf "$n")
@@ -188,7 +198,7 @@ function extract {
         EXIT_CODE="$((EXIT_CODE + 1))"
       fi
 
-      if [ -n "${in_dir}" ] ; then
+      if [ -n "${in_dir}" ] && [ "${in_dir}" != '.' ] ; then
         echo "Removing '${in_dir}/${n}' hardlink" >&2
         rm "${in_dir}/${n}" || echo "^^ FAILED!" >&2
       fi

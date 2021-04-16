@@ -87,9 +87,6 @@ function extract {
       EXIT_CODE="$((EXIT_CODE + 1))"
       continue
     fi
-    if [ "${VERBOSE}" -eq 1 ] ; then
-      echo "===> Extracting: $n <===" >&2
-    fi
 
     if [ "${FORCE_DIR}" -eq 0 ] ; then
       if ! in_dir="$(in_temp "$n")" ; then
@@ -100,9 +97,12 @@ function extract {
       fi
 
       echo "Removing '${in_dir}/${n}' hardlink" >&2
-      rm "${in_dir}/${n}" || echo "FAILED!" >&2
+      rm "${in_dir}/${n}" || echo "^^ FAILED!" >&2
 
       continue
+    fi
+    if [ "${VERBOSE}" -eq 1 ] ; then
+      echo "===> Extracting: $n <===" >&2
     fi
 
     case "${n%,}" in
@@ -175,7 +175,7 @@ function extract {
 
       if [ -n "${in_dir}" ] ; then
         echo "Removing '${in_dir}/${n}' hardlink" >&2
-        rm "${in_dir}/${n}" || echo "FAILED!" >&2
+        rm "${in_dir}/${n}" || echo "^^ FAILED!" >&2
       fi
   done
 

@@ -128,6 +128,14 @@ function extract {
         fi
         (cd "${in_dir}" && ar "${VERBOSE_FLAG[*]}"x "$n")
       ;;
+      *.jar)
+        test "${VERBOSE}" -eq 0 && VERBOSE_FLAG=(v)
+
+        if ! in_dir="$(in_temp "$n")" ; then
+          echo "Failed to prepare '$n' for extraction!" >&2
+        fi
+        (cd "${in_dir}" && jar "${VERBOSE_FLAG[*]}"xf "$n")
+      ;;
       *.7z|*.arj|*.cab|*.cb7|*.chm|*.deb|*.dmg|*.iso|*.lzh|*.msi|*.pkg|*.rpm|*.udf|*.wim|*.xar|*.exe|*.apk)
                               7z x "$n"        ;;
       *.xz)                   unxz "$n"        ;;

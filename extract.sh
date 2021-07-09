@@ -192,6 +192,12 @@ function extract {
         fi
         (cd "${in_dir}" && ar "${VERBOSE_FLAG[*]}"x "$n")
       ;;
+      *.lz4)
+        # We test quiet instead
+        test "${VERBOSE}" -eq 1 && VERBOSE_FLAG=(q)
+
+        lz4c -d"${VERBOSE_FLAG[*]}" "$n"
+      ;;
       *.jar)
         test "${VERBOSE}" -eq 0 && VERBOSE_FLAG=(v)
 

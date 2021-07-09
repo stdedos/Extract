@@ -30,11 +30,12 @@ Using command `extract`, in a terminal
 
 ```
 $ extract <archive_filename.extention>
+```
 
+```
 $ extract <archive_filename_1.extention> <archive_filename_2.extention> <archive_filename_3.extention> ...
 ```
 
-License
--------
-Author [Vitalii Tereshchuk](http://dotoca.net). &copy; 2013-2020, MIT license.
-Author Stdedos <133706+stdedos@users.noreply.github.com> &copy; 2020-2021, MIT license.
+## License
+&copy; 2013, [Vitalii Tereshchuk](http://dotoca.net) via MIT license.
+&copy; 2020, Stdedos <133706+stdedos@users.noreply.github.com>, MIT license.
